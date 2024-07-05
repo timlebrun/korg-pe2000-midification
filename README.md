@@ -7,6 +7,8 @@ This repository should contain everything related to my attempt at adding a MIDI
 `// TODO: Add pictures`
 `// TODO: Add diagrams`
 
+![alt text](./docs/diagram-synth-blocks.png)
+
 ## Roadmap
 
 - [x] Synth internal reverse engineering
