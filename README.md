@@ -7,7 +7,12 @@ This repository should contain everything related to my attempt at adding a MIDI
 `// TODO: Add pictures`
 `// TODO: Add diagrams`
 
-![alt text](./docs/diagram-synth-blocks.png)
+![Block Diagram of the Korg PE2000 Synth internal circuits](./docs/diagram-synth-blocks.png)
+
+## The Plan
+
+![Structure of the main plan for the MIDIficiation](./docs/diagram-main-plan.png)
+
 
 ## Roadmap
 
