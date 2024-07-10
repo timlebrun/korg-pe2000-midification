@@ -4,8 +4,11 @@ This repository should contain everything related to my attempt at adding a MIDI
 
 ## The Synth
 
-`// TODO: Add pictures`
-`// TODO: Add diagrams`
+![Frontal picture of the Korg PE2000 Synth in a nice purple light](./docs/photo-face.jpeg)
+
+![Picture of the Korg PE2000 Synth internals](./docs/photo-internals.jpeg)
+
+### Architecture
 
 ![Block Diagram of the Korg PE2000 Synth internal circuits](./docs/diagram-synth-blocks.png)
 
