@@ -10,22 +10,16 @@
 #define GLOBAL_KEY_LOOP(x) for(int x = 0; x < GLOBAL_KEY_COUNT; ++ x)
 #define GLOBAL_KEY_MIDI_OFFSET 8 // The integer offset between the keyboard keys and te midi notes
 
-#define KEYBOARD_MIDI_OUTPUT_PIN 1
+#define KEYBOARD_MIDI_OUTPUT_PIN 18
 #define KEYBOARD_MIDI_OUTPUT_CHANNEL 1
 
 #define KEYBOARD_SHIFT_REGISTER_DATA_PIN 2
 #define KEYBOARD_SHIFT_REGISTER_CLOCK_PIN 3
 #define KEYBOARD_SHIFT_REGISTER_LATCH_PIN 4
 
-#define KEYBOARD_SHIFT_REGISTER_COUNT 6
-#define KEYBOARD_SHIFT_REGISTER_LOOP(x) for(int x = 0; x < KEYBOARD_SHIFT_REGISTER_COUNT; ++x)
-
 #define SYNTH_SHIFT_REGISTER_DATA_PIN 5
 #define SYNTH_SHIFT_REGISTER_CLOCK_PIN 6
 #define SYNTH_SHIFT_REGISTER_LATCH_PIN 7
-
-#define SYNTH_SHIFT_REGISTER_COUNT 6
-#define SYNTH_SHIFT_REGISTER_LOOP(x) for(int x = 0; x < SYNTH_SHIFT_REGISTER_COUNT; ++x)
 
 #define SYNTH_MIDI_INPUT_PIN 19
 #define SYNTH_MIDI_INPUT_CHANNEL 1
@@ -46,23 +40,13 @@ midi::MidiInterface<MidiTransport> MIDI((MidiTransport&)serialMIDI);
  * into a temporary buffer
  */
 void syncKeyboardShiftRegisterData() {
-  // an attempt at optimizing to increment a counter instead of multiplications
-  int keyAddress = 0;
-
   // Makes sure the clock pin is low to prevent any missing rising edge issue
   digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, LOW);
 
-  KEYBOARD_SHIFT_REGISTER_LOOP(addressByte) {
-    byte keyboardInputByte = shiftIn(
-      KEYBOARD_SHIFT_REGISTER_DATA_PIN,
-      KEYBOARD_SHIFT_REGISTER_CLOCK_PIN,
-      MSBFIRST
-    );
-    
-    for (int i = 0; i < 8; ++i) {
-      keyboardShiftRegisterInputData[keyAddress] = (keyboardInputByte & (1<<i)) != 0;
-      keyAddress++;
-    }
+  GLOBAL_KEY_LOOP(keyAddress) {
+    digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, HIGH);
+    keyboardShiftRegisterInputData[keyAddress] = digitalRead(KEYBOARD_SHIFT_REGISTER_DATA_PIN);
+    digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, LOW);
   }
 }
 
@@ -117,6 +101,24 @@ void loopKeyboard() {
 }
 
 /**
+ * Dumps the expected key state into the output
+ * bit shift register
+ */
+void syncMidiToSynth() {
+  // Hold the changes by disabling latch
+  digitalWrite(SYNTH_SHIFT_REGISTER_LATCH_PIN, LOW);
+
+  GLOBAL_KEY_LOOP(keyAddress) {
+    digitalWrite(SYNTH_SHIFT_REGISTER_DATA_PIN, synthExpectedKeyState[keyAddress]);
+    digitalWrite(SYNTH_SHIFT_REGISTER_CLOCK_PIN, HIGH);
+    digitalWrite(SYNTH_SHIFT_REGISTER_CLOCK_PIN, LOW);
+  }
+
+  // Trigger all the changes by activating the bit shift register latch
+  digitalWrite(SYNTH_SHIFT_REGISTER_LATCH_PIN, HIGH);
+}
+
+/**
  * Handles a note change from MIDI input
  */
 void handleMidiNoteChange(byte midiNote, bool midiValue) {
@@ -130,40 +132,6 @@ void handleMidiNoteChange(byte midiNote, bool midiValue) {
   digitalWrite(LED_BUILTIN, LOW);
 
   Serial.println("MIDI NOTE CHANGE");
-}
-
-/**
- * Dumps the expected key state into the output
- * bit shift register
- */
-void syncMidiToSynth() {
-  int keyAddress = 0;
-
-  // Hold the changes by disabling latch
-  digitalWrite(SYNTH_SHIFT_REGISTER_LATCH_PIN, LOW);
-
-  // Iterates on all bit shift register bytes
-  SYNTH_SHIFT_REGISTER_LOOP(addressByte) {
-    byte synthOutputByte;
-    
-    // Constructs a byte from the 8 booleans
-    for (int i=0; i < 8; ++i) {
-      // Flips the bit at i to the boolean in expected state
-      synthOutputByte |= synthExpectedKeyState[keyAddress] << i;
-      keyAddress++;
-    }
-
-    // Sends the byte to the bit shift registers
-    shiftOut(
-      SYNTH_SHIFT_REGISTER_DATA_PIN,
-      SYNTH_SHIFT_REGISTER_CLOCK_PIN,
-      MSBFIRST,
-      synthOutputByte
-    );
-  }
-
-  // Trigger all the changes by activating the bit shift register latch
-  digitalWrite(SYNTH_SHIFT_REGISTER_LATCH_PIN, HIGH);
 }
 
 /**
