@@ -1,10 +1,7 @@
 #include <Arduino.h>
-
-#include <SoftwareSerial.h>
-#include <PCF8574.h>
 #include <MIDI.h>
 
-#include <midi/pitches.h>
+#define LED_BUILTIN 2
 
 #define GLOBAL_KEY_COUNT 48
 #define GLOBAL_KEY_LOOP(x) for(int x = 0; x < GLOBAL_KEY_COUNT; ++ x)
@@ -29,11 +26,8 @@ bool keyboardShiftRegisterInputData[GLOBAL_KEY_COUNT];
 
 bool synthExpectedKeyState[GLOBAL_KEY_COUNT];
 
-using MidiTransport = midi::SerialMIDI<SoftwareSerial>;
-
-SoftwareSerial midiSerial = SoftwareSerial(SYNTH_MIDI_INPUT_PIN, KEYBOARD_MIDI_OUTPUT_PIN);
-MidiTransport serialMIDI(midiSerial);
-midi::MidiInterface<MidiTransport> MIDI((MidiTransport&)serialMIDI);
+midi::SerialMIDI<HardwareSerial> serialMIDI(Serial2);
+midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> MIDI((midi::SerialMIDI<HardwareSerial>&)serialMIDI);
 
 /**
  * Dumps the data from input bit shift registers
@@ -41,7 +35,7 @@ midi::MidiInterface<MidiTransport> MIDI((MidiTransport&)serialMIDI);
  */
 void syncKeyboardShiftRegisterData() {
   // Makes sure the clock pin is low to prevent any missing rising edge issue
-  digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, LOW);
+
 
   GLOBAL_KEY_LOOP(keyAddress) {
     digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, HIGH);
@@ -170,10 +164,12 @@ void setup() {
   pinMode(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, OUTPUT);
   pinMode(KEYBOARD_SHIFT_REGISTER_DATA_PIN, INPUT);
   pinMode(KEYBOARD_SHIFT_REGISTER_LATCH_PIN, OUTPUT);
+  digitalWrite(KEYBOARD_SHIFT_REGISTER_CLOCK_PIN, LOW);
 
   pinMode(SYNTH_SHIFT_REGISTER_CLOCK_PIN, OUTPUT);
   pinMode(SYNTH_SHIFT_REGISTER_DATA_PIN, OUTPUT);
   pinMode(SYNTH_SHIFT_REGISTER_LATCH_PIN, OUTPUT);
+
 
   GLOBAL_KEY_LOOP(keyAddress) {
     keyboardShiftRegisterPreviousData[keyAddress] = false;
